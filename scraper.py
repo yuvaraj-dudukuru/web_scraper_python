@@ -272,21 +272,15 @@ def scrape(link, page=1):
         count = 1
         total = len(results)
         for each in results:
-            link_element = each.find('a', attrs={'class': 'view_detail_button'})
-            if not link_element:
-                print(f"Warning: Could not find button_container_card for result {count}") # Debugging
-                pass
-            else:
-                link = link_element['href']
-                print(f"Scraping company data from: {HOST + link}") # Debugging
+            title_container = each.find('div', attrs={'class': 'job_title'})
+            if title_container and title_container.find('a'):
+                link = title_container.find('a')['href']
+                print(f"Scraping company data from: {HOST + link}") 
                 data = scrape_company_data(link)
-                if data:
-                    company_name = data['company_name']
-                    if not company_name in COMPANIES_MAP:
-                        COMPANIES_MAP[company_name] = data
-                else:
-                    print(f"Error: Could not retrieve company data for: {HOST + link}") # Debugging
-
+                
+            else:
+                print(f"Warning: Could not find job title link for result {count} ")
+                pass
             print(f'Scraping: {count}/{total} completed', end='\r')
             count += 1
     else:

@@ -45,110 +45,253 @@ def get_number_from_text(text):
     
     return 0
 
+# def scrape_company_data(url):
+#     url = HOST + url
+#     page = handleRequests(url)
+#     page_content = getSoup(page)
+
+#     company_name = str(page_content.find('div', attrs={'class': 'company_name'}).p.text).strip()
+#     website = page_content.find('div', attrs={'class': 'website_link'})
+#     about = page_content.find('div', attrs={'class':'about_company_text_container'})
+
+#     candidates_hired = 0
+#     opportunities_posted = 0
+#     hiring_since = ''
+
+#     activities = page_content.find('div', attrs={'class': 'activity_container'})
+#     jd_details = page_content.find('div', attrs={'class': 'internship_details'})
+#     other_details = page_content.find('div', attrs={'class': 'internship_other_details_container'})
+#     location = page_content.find(attrs={'id': 'location_names'}).find('span')
+#     applied_candidates = page_content.find('div', attrs={'class': 'applications_message'}).text
+
+#     jd = str(jd_details.find('div', attrs={'class': 'text-container'}).text).strip()
+#     skills = jd_details.find('div', attrs={'class': 'round_tabs_container'})
+#     if skills:
+#         skills = skills.find_all('span', attrs={'class': 'round_tabs'})
+#         skills =  [skill.text for skill in skills]
+#     else:
+#         skills = []
+
+#     payout_container = page_content.find('div', attrs={'class': 'salary_container'})
+#     if not payout_container:
+#         payout_container = page_content.find('div', attrs={'class': 'stipend_container'})
+        
+#     payout_type = str(payout_container.find('div', attrs={'class': 'item_heading'}).find('span').text).strip()
+#     payout = str(payout_container.find('div', attrs={'class': 'item_body'}).find('span').text).strip()
+
+#     duration = ''
+#     _duration = other_details.find(string=lambda text: 'duration' in text.lower())
+#     if _duration:
+#         if _duration.parent.parent.parent:
+#             _duration = _duration.parent.parent.parent
+#             duration = str(_duration.find(attrs={'class': 'item_body'}).text).strip()
+
+#     if website:
+#         website = website.a['href']
+    
+#     if location:
+#         location = str(location.text).strip()
+
+#     if about:
+#         about = str(about.text).strip()
+#     else:
+#         about = ''
+
+#     if activities:
+#         activities = activities.select('.activity')
+#     else:
+#         activities = []
+
+#     for activity in activities:
+#         activity = str(activity.text).strip()
+
+#         if 'hired' in activity:
+#             candidates_hired = get_number_from_text(activity)
+#         elif 'posted' in activity:
+#             opportunities_posted = get_number_from_text(activity)
+#         else:
+#             hiring_since = activity
+
+#     return {
+#         "company_name": company_name, "website": website, 
+#         "about": about, "candidates_hired": candidates_hired, "opportunities_posted": opportunities_posted, 
+#         "hiring_since": hiring_since, "job_description": jd, "skills": ', '.join(skills),
+#         "candidates_applied": get_number_from_text(applied_candidates),
+#         "location": location, "payout_type": payout_type, "payout":  payout, "duration": duration,
+#         "page_url": url
+#     }
 def scrape_company_data(url):
-    url = HOST + url
+    print(f"Entering scrape_company_data with URL: {url}") # Debugging
     page = handleRequests(url)
     page_content = getSoup(page)
 
-    company_name = str(page_content.find('div', attrs={'class': 'company_name'}).p.text).strip()
-    website = page_content.find('div', attrs={'class': 'website_link'})
-    about = page_content.find('div', attrs={'class':'about_company_text_container'})
+    try:
+        company_name_element = page_content.find('div', attrs={'class': 'company_name'}).p
+        company_name = str(company_name_element.text).strip() if company_name_element else "N/A"
+        print(f"Found company name: {company_name}") # Debugging
+    except Exception as e:
+        print(f"Error finding company name: {e}") # Debugging
+        return None
+
+    # Add more try-except blocks around other data extraction parts
+    try:
+        website_element = page_content.find('div', attrs={'class': 'website_link'})
+        website = website_element.a['href'] if website_element and website_element.a else "N/A"
+    except:
+        website = "N/A"
+
+    try:
+        about_element = page_content.find('div', attrs={'class':'about_company_text_container'})
+        about = str(about_element.text).strip() if about_element else "N/A"
+    except:
+        about = "N/A"
 
     candidates_hired = 0
     opportunities_posted = 0
     hiring_since = ''
 
-    activities = page_content.find('div', attrs={'class': 'activity_container'})
-    jd_details = page_content.find('div', attrs={'class': 'internship_details'})
-    other_details = page_content.find('div', attrs={'class': 'internship_other_details_container'})
-    location = page_content.find(attrs={'id': 'location_names'}).find('span')
-    applied_candidates = page_content.find('div', attrs={'class': 'applications_message'}).text
+    try:
+        activities = page_content.find('div', attrs={'class': 'activity_container'})
+        if activities:
+            activities = activities.select('.activity')
+            for activity in activities:
+                activity_text = str(activity.text).strip()
+                if 'hired' in activity_text:
+                    candidates_hired = get_number_from_text(activity_text)
+                elif 'posted' in activity_text:
+                    opportunities_posted = get_number_from_text(activity_text)
+                else:
+                    hiring_since = activity_text
+    except:
+        pass
 
-    jd = str(jd_details.find('div', attrs={'class': 'text-container'}).text).strip()
-    skills = jd_details.find('div', attrs={'class': 'round_tabs_container'})
-    if skills:
-        skills = skills.find_all('span', attrs={'class': 'round_tabs'})
-        skills =  [skill.text for skill in skills]
-    else:
-        skills = []
+    jd = "N/A"
+    try:
+        jd_details = page_content.find('div', attrs={'class': 'internship_details'})
+        if jd_details:
+            jd_element = jd_details.find('div', attrs={'class': 'text-container'})
+            jd = str(jd_element.text).strip() if jd_element else "N/A"
+    except:
+        pass
 
-    payout_container = page_content.find('div', attrs={'class': 'salary_container'})
-    if not payout_container:
-        payout_container = page_content.find('div', attrs={'class': 'stipend_container'})
-        
-    payout_type = str(payout_container.find('div', attrs={'class': 'item_heading'}).find('span').text).strip()
-    payout = str(payout_container.find('div', attrs={'class': 'item_body'}).find('span').text).strip()
+    skills = []
+    try:
+        skills_container = jd_details.find('div', attrs={'class': 'round_tabs_container'}) if jd_details else None
+        if skills_container:
+            skill_elements = skills_container.find_all('span', attrs={'class': 'round_tabs'})
+            skills = [skill.text for skill in skill_elements]
+    except:
+        pass
 
-    duration = ''
-    _duration = other_details.find(string=lambda text: 'duration' in text.lower())
-    if _duration:
-        if _duration.parent.parent.parent:
-            _duration = _duration.parent.parent.parent
-            duration = str(_duration.find(attrs={'class': 'item_body'}).text).strip()
+    payout_type = "N/A"
+    payout = "N/A"
+    try:
+        payout_container = page_content.find('div', attrs={'class': 'salary_container'})
+        if not payout_container:
+            payout_container = page_content.find('div', attrs={'class': 'stipend_container'})
+        if payout_container:
+            payout_type_element = payout_container.find('div', attrs={'class': 'item_heading'}).find('span')
+            payout_type = str(payout_type_element.text).strip() if payout_type_element else "N/A"
+            payout_element = payout_container.find('div', attrs={'class': 'item_body'}).find('span')
+            payout = str(payout_element.text).strip() if payout_element else "N/A"
+    except:
+        pass
 
-    if website:
-        website = website.a['href']
-    
-    if location:
-        location = str(location.text).strip()
+    duration = "N/A"
+    try:
+        _duration_element = page_content.find(string=lambda text: 'duration' in text.lower())
+        if _duration_element and _duration_element.parent.parent.parent:
+            duration_container = _duration_element.parent.parent.parent
+            duration_element = duration_container.find(attrs={'class': 'item_body'})
+            duration = str(duration_element.text).strip() if duration_element else "N/A"
+    except:
+        pass
 
-    if about:
-        about = str(about.text).strip()
-    else:
-        about = ''
+    location = "N/A"
+    try:
+        location_element = page_content.find(attrs={'id': 'location_names'}).find('span')
+        location = str(location_element.text).strip() if location_element else "N/A"
+    except:
+        pass
 
-    if activities:
-        activities = activities.select('.activity')
-    else:
-        activities = []
-
-    for activity in activities:
-        activity = str(activity.text).strip()
-
-        if 'hired' in activity:
-            candidates_hired = get_number_from_text(activity)
-        elif 'posted' in activity:
-            opportunities_posted = get_number_from_text(activity)
-        else:
-            hiring_since = activity
+    applied_candidates = "N/A"
+    try:
+        applied_candidates_element = page_content.find('div', attrs={'class': 'applications_message'})
+        applied_candidates = get_number_from_text(applied_candidates_element.text) if applied_candidates_element else "N/A"
+    except:
+        pass
 
     return {
-        "company_name": company_name, "website": website, 
-        "about": about, "candidates_hired": candidates_hired, "opportunities_posted": opportunities_posted, 
+        "company_name": company_name, "website": website,
+        "about": about, "candidates_hired": candidates_hired, "opportunities_posted": opportunities_posted,
         "hiring_since": hiring_since, "job_description": jd, "skills": ', '.join(skills),
-        "candidates_applied": get_number_from_text(applied_candidates),
+        "candidates_applied": applied_candidates,
         "location": location, "payout_type": payout_type, "payout":  payout, "duration": duration,
         "page_url": url
     }
+
+# def scrape(link, page=1):
+#     data = handleRequests(link)
+#     soup = getSoup(data)
+
+#     results = soup.find('div', attrs={'id': 'internship_list_container_' + str(page)}).find_all('div', attrs={'class': 'individual_internship'})
     
+#     print(f'Found a total of {len(results)} results on this page.' + (' \n' if results else ' Skipping... \n'))
+#     if not results:
+#         return
+    
+#     count = 1
+#     total = len(results)
+
+#     for each in results:
+#         btn = each.find('div', attrs={'class': 'button_container_card'})
+#         if not btn:
+#             pass
+#         else:
+#             link = btn.a['href']
+#             data = scrape_company_data(link)
+#             company_name = data['company_name']
+            
+#             if not company_name in COMPANIES_MAP:
+#                 COMPANIES_MAP[company_name] = data
+
+#         print(f'Scraping: {count}/{total} completed', end='\r')
+#         count += 1
 
 def scrape(link, page=1):
+    print(f"Scraping page: {page} with URL: {link}")  # Debugging print
     data = handleRequests(link)
     soup = getSoup(data)
 
-    results = soup.find('div', attrs={'id': 'internship_list_container_' + str(page)}).find_all('div', attrs={'class': 'individual_internship'})
-    
-    print(f'Found a total of {len(results)} results on this page.' + (' \n' if results else ' Skipping... \n'))
-    if not results:
-        return
-    
-    count = 1
-    total = len(results)
+    results_container = soup.find('div', attrs={'id': 'internship_list_container_' + str(page)})
+    if results_container:
+        results = results_container.find_all('div', attrs={'class': 'individual_internship'})
+        print(f'Found a total of {len(results)} results on this page.')
+        if not results:
+            return
+        count = 1
+        total = len(results)
+        for each in results:
+            btn = each.find('div', attrs={'class': 'button_container_card'})
+            if not btn:
+                print(f"Warning: Could not find button_container_card for result {count}") # Debugging
+                pass
+            else:
+                link = btn.a['href']
+                print(f"Scraping company data from: {HOST + link}") # Debugging
+                data = scrape_company_data(link)
+                if data:
+                    company_name = data['company_name']
+                    if not company_name in COMPANIES_MAP:
+                        COMPANIES_MAP[company_name] = data
+                else:
+                    print(f"Error: Could not retrieve company data for: {HOST + link}") # Debugging
 
-    for each in results:
-        btn = each.find('div', attrs={'class': 'button_container_card'})
-        if not btn:
-            pass
-        else:
-            link = btn.a['href']
-            data = scrape_company_data(link)
-            company_name = data['company_name']
-            
-            if not company_name in COMPANIES_MAP:
-                COMPANIES_MAP[company_name] = data
+            print(f'Scraping: {count}/{total} completed', end='\r')
+            count += 1
+    else:
+        print(f"Error: Could not find internship_list_container_{page}") # Debugging
 
-        print(f'Scraping: {count}/{total} completed', end='\r')
-        count += 1
 
 
 def main(url='', start=1, stop=1):

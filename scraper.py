@@ -272,12 +272,12 @@ def scrape(link, page=1):
         count = 1
         total = len(results)
         for each in results:
-            btn = each.find('div', attrs={'class': 'button_container_card'})
-            if not btn:
+            link_element = each.find('a', attrs={'class': 'view_detail_button'})
+            if not link_element:
                 print(f"Warning: Could not find button_container_card for result {count}") # Debugging
                 pass
             else:
-                link = btn.a['href']
+                link = link_element['href']
                 print(f"Scraping company data from: {HOST + link}") # Debugging
                 data = scrape_company_data(link)
                 if data:

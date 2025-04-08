@@ -1,5 +1,4 @@
-# Author: Rewritten by ChatGPT for clarity and modularity
-# Original: imshawan <hello@imshawan.dev>
+
 # Date: 08-04-2025
 # Description: Scrapes internship/job listings from Internshala and exports data to Excel.
 
@@ -47,13 +46,13 @@ def parse_job_page(relative_url: str) -> dict:
     html = fetch_html(full_url)
     soup = BeautifulSoup(html, "html.parser")
 
-    # Example selectors — you'll need to adjust these by inspecting the page:
+    
     company_name = soup.select_one("a.company-name").text.strip()
     title        = soup.select_one("h1.job-title").text.strip()
     location     = soup.select_one("div.job-location").text.strip()
     salary       = soup.select_one("div.salary-range").text.strip()
     description  = soup.select_one("div.job-description").text.strip()
-    # ...etc...
+    
 
     return {
         "company_name": company_name,
@@ -218,25 +217,68 @@ def get_total_pages(url: str) -> int:
         raise ValueError("Unable to determine total page count. DOM structure may have changed.")
 
 
+# def main():
+#     base_url = "https://internshala.com/jobs/analytics-jobs/work-from-home"
+
+#     try:
+#         total_pages = get_total_pages(base_url)
+#         print(f"📊 Found {total_pages} pages")
+
+#         start = input("Enter start page (default=1): ").strip()
+#         start = int(start) if start else 1
+
+#         for page in range(start, total_pages + 1):
+#             paginated_url = f"{base_url}/page-{page}"
+#             scrape_page(paginated_url, page)
+
+#         if COMPANY_DATA:
+#             filename = slugify("Internshala Analytics Jobs") + ".xlsx"
+#             save_to_excel(list(COMPANY_DATA.values()), filename)
+#         else:
+#             print("❌ No data scraped to write.")
+
+#     except Exception as e:
+#         print(f"🚨 Fatal error: {e}")
 def main():
-    base_url = "https://internshala.com/jobs/analytics-jobs/work-from-home"
+    url = input("🔗 Enter Internshala URL (listing page or specific internship/job): ").strip()
+
+    if not url.startswith("http"):
+        print("❌ Invalid URL. Make sure it starts with 'http'.")
+        return
 
     try:
-        total_pages = get_total_pages(base_url)
-        print(f"📊 Found {total_pages} pages")
+        if "/internship/" in url or "/jobs/" in url:
+           
+            if BASE_URL not in url:
+                url = BASE_URL + url
 
-        start = input("Enter start page (default=1): ").strip()
-        start = int(start) if start else 1
+            if "/internship/" in url:
+                data = parse_company_page(url.replace(BASE_URL, ""))
+            else:
+                data = parse_job_page(url.replace(BASE_URL, ""))
 
-        for page in range(start, total_pages + 1):
-            paginated_url = f"{base_url}/page-{page}"
-            scrape_page(paginated_url, page)
+            if data:
+                save_to_excel([data], slugify(data["company_name"] + "_listing") + ".xlsx")
+            else:
+                print("⚠️ Failed to parse the given job/internship URL.")
 
-        if COMPANY_DATA:
-            filename = slugify("Internshala Analytics Jobs") + ".xlsx"
-            save_to_excel(list(COMPANY_DATA.values()), filename)
         else:
-            print("❌ No data scraped to write.")
+          
+            total_pages = get_total_pages(url)
+            print(f"📊 Found {total_pages} pages")
+
+            start = input("Enter start page (default=1): ").strip()
+            start = int(start) if start else 1
+
+            for page in range(start, total_pages + 1):
+                paginated_url = f"{url}/page-{page}"
+                scrape_page(paginated_url, page)
+
+            if COMPANY_DATA:
+                filename = slugify("Internshala Listings") + ".xlsx"
+                save_to_excel(list(COMPANY_DATA.values()), filename)
+            else:
+                print("❌ No data scraped to write.")
 
     except Exception as e:
         print(f"🚨 Fatal error: {e}")

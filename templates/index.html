@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head><title>Internshala Scraper</title></head>
+<body>
+    <h1>Internshala Job/Internship Scraper</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <p style="color: {{ 'green' if category == 'success' else 'red' }}">{{ message }}</p>
+        {% endfor %}
+    {% endwith %}
+
+    <form method="POST">
+        <label>Enter Internshala URL:</label><br>
+        <input type="text" name="url" required><br><br>
+
+        <label>Start Page (optional):</label><br>
+        <input type="number" name="start_page"><br><br>
+
+        <button type="submit">Scrape Now</button>
+    </form>
+</body>
+</html>
